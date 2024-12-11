@@ -16,7 +16,7 @@ def setup_logger():
     Configures a logger for the scraper.
     """
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[
             logging.FileHandler("scraper.log"),
@@ -117,15 +117,22 @@ def scrape_facebook_posts(driver, keyword, max_posts=50):
     scroll_attempts = 0
     timeout = time.time() + 120
 
-    while len(posts) < (2 * max_posts) and scroll_attempts < 5:
-        elements = driver.find_elements(By.CSS_SELECTOR, 'div[dir="auto"]')
+    while len(posts) < max_posts and scroll_attempts < 5:
+        elements = driver.find_elements(By.CSS_SELECTOR, "div.x1yztbdb.x1n2onr6.xh8yej3.x1ja2u2z")
         for elem in elements:
             if len(posts) >= max_posts:
                 break
+
+            try:
+                xem_them_button = elem.find_element(By.XPATH, ".//div[contains(text(), 'Xem thêm')]")
+                driver.execute_script("arguments[0].click();", xem_them_button)
+                time.sleep(1)
+            except Exception as e:
+                logging.debug(f"No 'Xem thêm' button found or unable to click: {e}")
+
             text = elem.text.strip()
             if text and text not in posts:
                 posts.append(text)
-                posts.append('<<<END OF POST>>>')
                 logging.info("just scraped a post!")
 
         # Scroll down and check for new content
@@ -148,9 +155,9 @@ def scrape_facebook_posts(driver, keyword, max_posts=50):
     logging.info(f"Scraped {len(posts)} posts.")
     return posts
 
-def save_to_csv(data, filename="facebook_posts.csv"):
+def save_to_excel(data, filename="facebook_posts.xlsx"):
     """
-    Saves data to a CSV file.
+    Saves data to a excel file.
     """
     # data.append("                     ")
     # data.append("#####   #   #   #### ")
@@ -160,8 +167,10 @@ def save_to_csv(data, filename="facebook_posts.csv"):
     # data.append("#####   #   #   #### ")
     # data.append("                     ")
 
-    df = pd.DataFrame(data, columns=["Post Content"])
-    df.to_csv(filename, index=False)
+    import openpyxl
+    with pd.ExcelWriter('scraped posts.xlsx', engine='openpyxl') as writer:
+        df = pd.DataFrame(data, columns=["Post Content"])
+        df.to_excel(writer, sheet_name=filename, index=False)
 
 if __name__ == "__main__":
 
@@ -180,7 +189,7 @@ if __name__ == "__main__":
     for keyword in keywords:
         posts = scrape_facebook_posts(driver, keyword, max_posts)
         if posts:
-            save_to_csv(posts)
+            save_to_excel(posts)
         else:
-            save_to_csv([])
+            save_to_excel([])
     driver.quit()
