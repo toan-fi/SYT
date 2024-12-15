@@ -9,6 +9,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 import json
 
 def setup_logger():
@@ -42,7 +43,7 @@ def get_webdriver(headless=False, proxy=None):
         proxy_settings.ssl_proxy = proxy
         options.proxy = proxy_settings
 
-    service = Service("/usr/local/bin/chromedriver")
+    service = Service(ChromeDriverManager().install())
     return webdriver.Chrome(service=service, options=options)
 
 def get_random_user_agent():
